@@ -1,0 +1,1 @@
+{"root":["./src/index.ts","./src/controllers/youtubecontroller.ts","./src/routes/youtube.ts","./src/types/declarations.d.ts","./src/types/index.ts","./src/utils/speechtotextutils.ts","./src/utils/youtubeutils.ts"],"errors":true,"version":"5.8.3"}

@@ -1,42 +1,42 @@
 # YouTube Transcript API
 
-MCP-совместимый сервер для получения транскрипций YouTube видео.
+MCP-compatible server for retrieving YouTube video transcripts.
 
-## Установка
+## Installation
 
 ```bash
-# Клонирование репозитория
+# Clone repository
 git clone <repository-url>
 cd youtube-transcript-api
 
-# Установка зависимостей
+# Install dependencies
 npm install
 
-# Создание файла .env
+# Create .env file
 cp .env.example .env
 ```
 
-## Запуск
+## Running
 
 ```bash
-# Режим разработки
+# Development mode
 npm run dev
 
-# Режим продакшн
+# Production mode
 npm start
 ```
 
-По умолчанию сервер запускается на порту 3000. Вы можете изменить порт, установив переменную окружения PORT в файле .env.
+By default, the server runs on port 3000. You can change the port by setting the PORT environment variable in the .env file.
 
 ## API Endpoints
 
-### Получение транскрипции видео
+### Get Video Transcript
 
 **URL**: `/api/youtube/transcript`
-**Метод**: `POST`
+**Method**: `POST`
 **Content-Type**: `application/json`
 
-**Тело запроса**:
+**Request Body**:
 
 ```json
 {
@@ -44,7 +44,7 @@ npm start
 }
 ```
 
-или
+or
 
 ```json
 {
@@ -52,12 +52,12 @@ npm start
 }
 ```
 
-**Опциональные параметры**:
+**Optional Parameters**:
 
-- `lang`: Код языка для транскрипции (например, "en", "ru", "fr")
-- `generateIfNotFound`: Булево значение, указывающее, следует ли генерировать субтитры, если они не найдены (по умолчанию: true)
+- `lang`: Language code for transcript (e.g., "en", "ru", "fr")
+- `generateIfNotFound`: Boolean indicating whether to generate captions if not found (default: true)
 
-**Успешный ответ**:
+**Successful Response**:
 
 ```json
 {
@@ -82,21 +82,21 @@ npm start
 }
 ```
 
-**Ошибки**:
+**Errors**:
 
-- 400 Bad Request: Неверный URL или идентификатор видео
-- 404 Not Found: Видео не найдено или для него отсутствуют субтитры (и генерация отключена)
-- 500 Internal Server Error: Внутренняя ошибка сервера или ошибка генерации субтитров
+- 400 Bad Request: Invalid URL or video ID
+- 404 Not Found: Video not found or no captions available (and generation disabled)
+- 500 Internal Server Error: Server error or caption generation error
 
-## Генерация субтитров
+## Caption Generation
 
-Если для видео не найдены субтитры на YouTube, сервер может автоматически сгенерировать их с помощью распознавания речи. Для этого:
+If captions are not found on YouTube, the server can automatically generate them using speech recognition. For this:
 
-1. Аудио извлекается из видео с помощью ytdl-core
-2. Аудио преобразуется в формат WAV с помощью ffmpeg
-3. Речь распознается с использованием Whisper API
+1. Audio is extracted from the video using ytdl-core
+2. Audio is converted to WAV format using ffmpeg
+3. Speech is recognized using Whisper API
 
-Чтобы отключить автоматическую генерацию субтитров, установите параметр `generateIfNotFound` в `false`:
+To disable automatic caption generation, set the `generateIfNotFound` parameter to `false`:
 
 ```json
 {
@@ -105,7 +105,7 @@ npm start
 }
 ```
 
-## Примеры использования
+## Usage Examples
 
 ### cURL
 
@@ -125,8 +125,8 @@ fetch('http://localhost:3000/api/youtube/transcript', {
   },
   body: JSON.stringify({
     videoId: 'dQw4w9WgXcQ',
-    lang: 'en', // опционально
-    generateIfNotFound: true // опционально
+    lang: 'en', // optional
+    generateIfNotFound: true // optional
   }),
 })
 .then(response => response.json())
@@ -134,6 +134,6 @@ fetch('http://localhost:3000/api/youtube/transcript', {
 .catch(error => console.error('Error:', error));
 ```
 
-## Лицензия
+## License
 
 ISC 
