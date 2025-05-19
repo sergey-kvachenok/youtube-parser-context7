@@ -5,6 +5,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { Whisper } from 'whisper-node';
 import { TranscriptItem, WhisperResult, WhisperSegment } from '../types';
+import { getLanguageCode } from './youtubeUtils';
 
 // Set ffmpeg path
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
@@ -69,9 +70,12 @@ const generateTranscript = async (audioPath: string, lang: string = 'auto'): Pro
     // Initialize Whisper for speech recognition
     const whisper = new Whisper('base');
     
+    // Get language code if it's not 'auto'
+    const langCode = lang === 'auto' ? null : getLanguageCode(lang) || null;
+    
     // Recognize speech
     const result = await whisper.transcribe(audioPath, {
-      language: lang === 'auto' ? null : lang,
+      language: langCode,
       output_format: 'json'
     }) as WhisperResult;
     

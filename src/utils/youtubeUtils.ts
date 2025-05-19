@@ -3,6 +3,56 @@ import { generateSubtitles } from './speechToTextUtils';
 import { TranscriptItem } from '../types';
 
 /**
+ * Maps common language names to their ISO codes
+ * @param {string} language - Language name or code
+ * @returns {string} - Language ISO code
+ */
+export const getLanguageCode = (language: string | null): string | null => {
+  if (!language) return null;
+  
+  // If already a language code (2-3 characters), return as is
+  if (/^[a-z]{2,3}(-[A-Z]{2})?$/.test(language)) {
+    return language.toLowerCase();
+  }
+  
+  // Map of common language names to ISO codes
+  const languageMap: Record<string, string> = {
+    'english': 'en',
+    'spanish': 'es',
+    'french': 'fr',
+    'german': 'de',
+    'italian': 'it',
+    'portuguese': 'pt',
+    'russian': 'ru',
+    'japanese': 'ja',
+    'korean': 'ko',
+    'chinese': 'zh',
+    'arabic': 'ar',
+    'hindi': 'hi',
+    'turkish': 'tr',
+    'dutch': 'nl',
+    'swedish': 'sv',
+    'polish': 'pl',
+    'vietnamese': 'vi',
+    'thai': 'th',
+    'indonesian': 'id',
+    'greek': 'el',
+    'romanian': 'ro',
+    'czech': 'cs',
+    'hungarian': 'hu',
+    'ukrainian': 'uk',
+    'hebrew': 'he',
+    'finnish': 'fi',
+    'danish': 'da',
+    'norwegian': 'no'
+  };
+  
+  // Try to find the language code
+  const normalizedLanguage = language.toLowerCase();
+  return languageMap[normalizedLanguage] || null;
+};
+
+/**
  * Extracts video ID from YouTube URL
  * @param {string} url - YouTube video URL
  * @returns {string|null} - Video ID or null if extraction failed
@@ -66,7 +116,7 @@ interface YoutubeTranscriptItem {
 /**
  * Gets video transcript by its ID
  * @param {string} videoId - YouTube video ID
- * @param {string} [lang] - Language code for transcript (optional)
+ * @param {string} [lang] - Language code or name for transcript (optional)
  * @param {boolean} [generateIfNotFound=false] - Generate captions if not found
  * @returns {Promise<Array>} - Array of transcript objects
  */
@@ -78,21 +128,61 @@ export const getTranscriptByVideoId = async (
   try {
     let options: { lang?: string } = {};
     if (lang) {
-      options.lang = lang;
+      // Convert language name to code if needed
+      const langCode = getLanguageCode(lang);
+      if (langCode) {
+        options.lang = langCode;
+      }
     }
     
-    const transcript = await YoutubeTranscript.fetchTranscript(videoId, options);
-    
-    if (!transcript || transcript.length === 0) {
-      throw new Error('No captions found');
+    try {
+      const transcript = await YoutubeTranscript.fetchTranscript(videoId, options);
+      
+      if (!transcript || transcript.length === 0) {
+        throw new Error('No captions found');
+      }
+      
+      // Format transcript into structured format
+      return transcript.map((item: YoutubeTranscriptItem) => ({
+        text: item.text,
+        start: item.offset / 1000, // Convert to seconds
+        duration: item.duration / 1000, // Convert to seconds
+      }));
+    } catch (error: any) {
+      // Check if error is about language not available
+      if (error.message && error.message.includes('No transcripts are available in')) {
+        console.log(`Requested language not available for video ${videoId}, trying to fetch available language...`);
+        
+        // Try to extract available languages from error message
+        const availableLanguagesMatch = error.message.match(/Available languages: (.*)/);
+        if (availableLanguagesMatch && availableLanguagesMatch[1]) {
+          const availableLanguages = availableLanguagesMatch[1].split(', ');
+          if (availableLanguages.length > 0) {
+            console.log(`Found available languages: ${availableLanguages.join(', ')}`);
+            
+            // Try to fetch transcript with the first available language
+            const transcript = await YoutubeTranscript.fetchTranscript(videoId, { lang: availableLanguages[0] });
+            
+            if (transcript && transcript.length > 0) {
+              console.log(`Successfully fetched transcript in ${availableLanguages[0]} language`);
+              
+              // Format transcript into structured format
+              return transcript.map((item: YoutubeTranscriptItem) => ({
+                text: item.text,
+                start: item.offset / 1000, // Convert to seconds
+                duration: item.duration / 1000, // Convert to seconds
+              }));
+            }
+          }
+        }
+        
+        // If we couldn't extract available languages or fetch transcript, throw the original error
+        throw error;
+      }
+      
+      // If it's not a language error, re-throw
+      throw error;
     }
-    
-    // Format transcript into structured format
-    return transcript.map((item: YoutubeTranscriptItem) => ({
-      text: item.text,
-      start: item.offset / 1000, // Convert to seconds
-      duration: item.duration / 1000, // Convert to seconds
-    }));
     
   } catch (error: any) {
     console.error(`Error getting transcript for video ${videoId}:`, error);
@@ -104,8 +194,10 @@ export const getTranscriptByVideoId = async (
       if (generateIfNotFound) {
         console.log(`No captions found for video ${videoId}, trying to generate...`);
         try {
-          // Use default language if not specified
-          const generatedTranscript = await generateSubtitles(videoId, lang || 'auto');
+          // Convert language name to code if needed
+          const langCode = lang ? getLanguageCode(lang) || 'auto' : 'auto';
+          
+          const generatedTranscript = await generateSubtitles(videoId, langCode);
           console.log(`Captions successfully generated for video ${videoId}`);
           
           // Add flag that captions were generated

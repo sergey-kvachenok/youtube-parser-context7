@@ -18,7 +18,7 @@ export const getTranscript = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { url, videoId, lang, generateIfNotFound = true } = req.body;
+    const { url, videoId, lang, generateIfNotFound = true, isPlainText = false } = req.body;
     
     if (!url && !videoId) {
       return res.status(400).json({
@@ -43,11 +43,16 @@ export const getTranscript = async (
     // Check if subtitles were generated
     const isGenerated = transcript.some((item: EnhancedTranscriptItem) => item.generated === true);
     
+    // If isPlainText is true, concatenate all text segments
+    const transcriptData = isPlainText 
+      ? transcript.map(item => item.text).join(' ') 
+      : transcript;
+    
     return res.status(200).json({
       success: true,
       data: {
         videoId: targetVideoId,
-        transcript,
+        transcript: transcriptData,
         generated: isGenerated
       }
     });
