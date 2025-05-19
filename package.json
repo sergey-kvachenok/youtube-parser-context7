@@ -1,0 +1,34 @@
+{
+  "name": "youtube-transcript-api",
+  "version": "1.0.0",
+  "description": "MCP-compatible server for retrieving YouTube video transcripts",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "youtube",
+    "transcript",
+    "api",
+    "mcp"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "fluent-ffmpeg": "^2.1.2",
+    "node-wav": "^0.0.2",
+    "whisper-node": "^0.1.5",
+    "youtube-transcript": "^1.0.6",
+    "youtube-transcript-api": "^1.0.1",
+    "ytdl-core": "^4.11.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
