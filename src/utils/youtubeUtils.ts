@@ -1,6 +1,12 @@
 import { YoutubeTranscript } from 'youtube-transcript';
-import { generateSubtitles } from './speechToTextUtils';
 import { TranscriptItem } from '../types';
+import { unlink } from 'fs/promises';
+import { Whisper } from 'whisper-node';
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpegPath from '@ffmpeg-installer/ffmpeg';
+import youtubeDl from 'youtube-dl-exec';
+
+ffmpeg.setFfmpegPath(ffmpegPath.path);
 
 /**
  * Maps common language names to their ISO codes
@@ -101,16 +107,57 @@ export const extractVideoId = (url?: string): string | null => {
   }
 };
 
-// Extend TranscriptItem interface to support generated flag
-interface EnhancedTranscriptItem extends TranscriptItem {
-  generated?: boolean;
-}
-
 // Interface for YouTube transcript item
 interface YoutubeTranscriptItem {
   text: string;
   offset: number;
   duration: number;
+}
+
+async function downloadAudio(videoId: string, outputPath: string): Promise<void> {
+  try {
+    await youtubeDl(`https://www.youtube.com/watch?v=${videoId}`, {
+      extractAudio: true,
+      audioFormat: 'mp3',
+      output: outputPath
+    });
+  } catch (error) {
+    console.error('Error downloading audio:', error);
+    throw new Error('Failed to download audio');
+  }
+}
+
+async function generateCaptions(videoId: string): Promise<TranscriptItem[]> {
+  const audioPath = `./temp_${videoId}.mp3`;
+  
+  try {
+    // Download audio
+    await downloadAudio(videoId, audioPath);
+    
+    // Generate transcription
+    const whisper = new Whisper('base');
+    const result = await whisper.transcribe(audioPath);
+    
+    // Convert Whisper output to TranscriptItem format
+    const transcript: TranscriptItem[] = result.map((segment: any) => ({
+      text: segment.text.trim(),
+      start: segment.start,
+      duration: segment.end - segment.start,
+      generated: true
+    }));
+    
+    return transcript;
+  } catch (error) {
+    console.error('Error generating captions:', error);
+    throw new Error('Failed to generate captions');
+  } finally {
+    // Cleanup: remove temporary audio file
+    try {
+      await unlink(audioPath);
+    } catch (error) {
+      console.error('Error removing temporary file:', error);
+    }
+  }
 }
 
 /**
@@ -120,11 +167,11 @@ interface YoutubeTranscriptItem {
  * @param {boolean} [generateIfNotFound=false] - Generate captions if not found
  * @returns {Promise<Array>} - Array of transcript objects
  */
-export const getTranscriptByVideoId = async (
-  videoId: string, 
-  lang: string | null = null, 
+export async function getTranscriptByVideoId(
+  videoId: string,
+  lang?: string,
   generateIfNotFound: boolean = true
-): Promise<EnhancedTranscriptItem[]> => {
+): Promise<TranscriptItem[]> {
   try {
     let options: { lang?: string } = {};
     if (lang) {
@@ -194,17 +241,7 @@ export const getTranscriptByVideoId = async (
       if (generateIfNotFound) {
         console.log(`No captions found for video ${videoId}, trying to generate...`);
         try {
-          // Convert language name to code if needed
-          const langCode = lang ? getLanguageCode(lang) || 'auto' : 'auto';
-          
-          const generatedTranscript = await generateSubtitles(videoId, langCode);
-          console.log(`Captions successfully generated for video ${videoId}`);
-          
-          // Add flag that captions were generated
-          return generatedTranscript.map((item: TranscriptItem) => ({
-            ...item,
-            generated: true
-          }));
+          return await generateCaptions(videoId);
         } catch (genError) {
           console.error(`Failed to generate captions for video ${videoId}:`, genError);
           throw new Error('Failed to generate captions');

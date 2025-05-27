@@ -19,6 +19,7 @@ export const getTranscript = async (
 ): Promise<Response | void> => {
   try {
     const { url, videoId, lang, generateIfNotFound = true, isPlainText = false } = req.body;
+       
     
     if (!url && !videoId) {
       return res.status(400).json({
@@ -44,8 +45,9 @@ export const getTranscript = async (
     const isGenerated = transcript.some((item: EnhancedTranscriptItem) => item.generated === true);
     
     // If isPlainText is true, concatenate all text segments
+ 
     const transcriptData = isPlainText 
-      ? transcript.map(item => item.text).join(' ') 
+      ? transcript.map(item => item.text).join(' ').replace(/&amp;#39;/g, "'")
       : transcript;
     
     return res.status(200).json({
